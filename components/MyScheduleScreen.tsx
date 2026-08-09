@@ -7,6 +7,7 @@ import {
   SLOT_COUNT,
   WEEKDAY_EVENING_START_SLOT,
   encode,
+  isHalfHourMark,
   isHourMark,
   isWeekend,
   slotLabel,
@@ -214,7 +215,7 @@ export function MyScheduleScreen({
             {Array.from({ length: SLOT_COUNT }).map((_, slot) => (
               <div key={slot} style={{ display: "contents" }}>
                 <div className={`time-cell ${isHourMark(slot) ? "hour" : ""}`}>
-                  {isHourMark(slot) ? slotLabel(slot) : ""}
+                  {isHalfHourMark(slot) ? slotLabel(slot) : ""}
                 </div>
                 {DAYS.map((_, day) => {
                   const state = slots.get(encode(day, slot));

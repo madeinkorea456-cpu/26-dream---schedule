@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Member } from "../lib/types";
-import { DAYS, SLOT_COUNT, isHourMark, slotLabel } from "../lib/time";
+import { DAYS, SLOT_COUNT, isHalfHourMark, isHourMark, slotLabel } from "../lib/time";
 import {
   DeptFilter,
   PlanSubFilter,
@@ -252,7 +252,7 @@ export function OverviewScreen({ members }: { members: Member[] }) {
                 {Array.from({ length: SLOT_COUNT }).map((_, slot) => (
                   <div key={slot} style={{ display: "contents" }}>
                     <div className={`time-cell ${isHourMark(slot) ? "hour" : ""}`}>
-                      {isHourMark(slot) ? slotLabel(slot) : ""}
+                      {isHalfHourMark(slot) ? slotLabel(slot) : ""}
                     </div>
                     {DAYS.map((_, day) => {
                       const count = membersAvailableAt(filtered, day, slot).length;
@@ -338,7 +338,7 @@ export function OverviewScreen({ members }: { members: Member[] }) {
                 <div className="excel-corner" />
                 {Array.from({ length: SLOT_COUNT }).map((_, slot) => (
                   <div key={slot} className="excel-timehead">
-                    {isHourMark(slot) ? slotLabel(slot) : ""}
+                    {isHalfHourMark(slot) ? slotLabel(slot) : ""}
                   </div>
                 ))}
                 {filtered.map((m) => (

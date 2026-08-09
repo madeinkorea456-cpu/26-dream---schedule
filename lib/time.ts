@@ -13,6 +13,11 @@ export function isHourMark(slot: number): boolean {
   return slot % SLOTS_PER_HOUR === 0;
 }
 
+// 정각(:00)과 30분(:30) — 라벨을 여기서 보여줘서 15분 단위 그리드에서도 시인성을 유지
+export function isHalfHourMark(slot: number): boolean {
+  return slot % 2 === 0;
+}
+
 export function slotToHourMinute(slot: number): { hour: number; minute: number } {
   const hour = START_HOUR + Math.floor(slot / SLOTS_PER_HOUR);
   const minute = (slot % SLOTS_PER_HOUR) * 15;
