@@ -359,6 +359,66 @@ select:focus-visible {
   background: var(--accent-soft);
 }
 
+.brush-row {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 10px;
+  flex-wrap: wrap;
+}
+.brush-btn {
+  flex: 1;
+  min-width: 64px;
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: var(--font-kr);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 6px;
+  border-radius: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.brush-btn .brush-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.brush-btn .brush-dot.avail {
+  background: var(--accent);
+}
+.brush-btn .brush-dot.class {
+  background: var(--ink-faint);
+}
+.brush-btn .brush-dot.job {
+  background: var(--gold);
+}
+.brush-btn[aria-pressed="true"].brush-avail {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.brush-btn[aria-pressed="true"].brush-class {
+  border-color: var(--ink-faint);
+  color: var(--ink-soft);
+  background: var(--surface-2);
+}
+.brush-btn[aria-pressed="true"].brush-job {
+  border-color: var(--gold);
+  color: var(--gold-ink);
+  background: var(--gold-soft);
+}
+.brush-btn[aria-pressed="true"].brush-erase {
+  border-color: var(--ink-faint);
+  color: var(--ink-soft);
+  background: var(--surface-2);
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -446,6 +506,18 @@ select:focus-visible {
   background: var(--accent);
   border: 1.5px solid var(--gold);
 }
+.swatch.avail {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.swatch.class {
+  background: var(--ink-faint);
+  border-color: var(--ink-faint);
+}
+.swatch.job {
+  background: var(--gold);
+  border-color: var(--gold);
+}
 
 .grid-scroll {
   overflow: auto;
@@ -517,10 +589,16 @@ select:focus-visible {
   background: var(--surface);
   touch-action: pan-y;
 }
-.input-cell.on {
+.input-cell.state-avail {
   background: var(--accent);
 }
-.input-cell:hover:not(.on) {
+.input-cell.state-class {
+  background: var(--ink-faint);
+}
+.input-cell.state-job {
+  background: var(--gold);
+}
+.input-cell:hover:not(.state-avail):not(.state-class):not(.state-job) {
   background: var(--accent-soft);
 }
 .heat-cell {
@@ -816,5 +894,13 @@ select {
   width: 7px;
   height: 7px;
   border-radius: 50%;
+}
+.excel-dot .mark.avail {
+  background: var(--accent);
+}
+.excel-dot .mark.class {
+  background: var(--ink-faint);
+}
+.excel-dot .mark.job {
   background: var(--gold);
 }

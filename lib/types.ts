@@ -5,7 +5,9 @@ export interface Member {
   name: string;
   dept: Dept;
   campus: boolean;
-  avail: number[];
+  availSlots: number[];
+  classSlots: number[];
+  jobSlots: number[];
 }
 
 export const DEPT_LABEL: Record<Dept, string> = {
@@ -16,3 +18,12 @@ export const DEPT_LABEL: Record<Dept, string> = {
 export type Selection =
   | { type: "pick"; id: string }
   | { type: "new"; name: string; dept: Dept; campus: boolean };
+
+// 시간표 한 칸의 상태: 가능(파랑) / 수업(회색) / 알바(골드) / 미입력
+export type SlotState = "avail" | "class" | "job";
+
+export interface ScheduleUpdate {
+  availSlots: number[];
+  classSlots: number[];
+  jobSlots: number[];
+}

@@ -1,4 +1,4 @@
-import { Member, Dept } from "./types";
+import { Member, Dept, SlotState } from "./types";
 import { DAYS, SLOT_COUNT, encode } from "./time";
 
 export type DeptFilter = "all" | Dept;
@@ -32,7 +32,7 @@ export interface DayRange {
 export function computeFullOverlap(members: Member[]): DayRange[] {
   const result: DayRange[] = [];
   if (members.length === 0) return result;
-  const sets = members.map((m) => new Set(m.avail));
+  const sets = members.map((m) => new Set(m.availSlots));
   for (let d = 0; d < DAYS.length; d++) {
     const ranges: [number, number][] = [];
     let curStart: number | null = null;
@@ -54,7 +54,15 @@ export function computeFullOverlap(members: Member[]): DayRange[] {
 
 export function membersAvailableAt(members: Member[], day: number, slot: number): Member[] {
   const code = encode(day, slot);
-  return members.filter((m) => m.avail.includes(code));
+  return members.filter((m) => m.availSlots.includes(code));
+}
+
+export function slotStateOf(member: Member, day: number, slot: number): SlotState | null {
+  const code = encode(day, slot);
+  if (member.availSlots.includes(code)) return "avail";
+  if (member.classSlots.includes(code)) return "class";
+  if (member.jobSlots.includes(code)) return "job";
+  return null;
 }
 
 export function membersAvailableForRange(
@@ -65,7 +73,7 @@ export function membersAvailableForRange(
 ): Member[] {
   if (endSlot <= startSlot) return [];
   return members.filter((m) => {
-    const set = new Set(m.avail);
+    const set = new Set(m.availSlots);
     for (let s = startSlot; s < endSlot; s++) {
       if (!set.has(encode(day, s))) return false;
     }

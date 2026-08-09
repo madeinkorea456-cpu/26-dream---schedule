@@ -1,10 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DEPT_LABEL, Member } from "../lib/types";
-import { DAYS, SLOT_COUNT, WEEKDAY_EVENING_START_SLOT, encode, isWeekend, slotLabel } from "../lib/time";
+import { DEPT_LABEL, Member, ScheduleUpdate, SlotState } from "../lib/types";
+import {
+  DAYS,
+  SLOT_COUNT,
+  WEEKDAY_EVENING_START_SLOT,
+  encode,
+  isHourMark,
+  isWeekend,
+  slotLabel,
+} from "../lib/time";
 
-type PaintMode = "on" | "off";
+type Brush = SlotState | "erase";
+
+const BRUSH_ITEMS: { id: Brush; label: string; dotClass: string }[] = [
+  { id: "avail", label: "가능", dotClass: "avail" },
+  { id: "class", label: "수업", dotClass: "class" },
+  { id: "job", label: "알바", dotClass: "job" },
+  { id: "erase", label: "지우기", dotClass: "" },
+];
+
+function buildSlotMap(member: Member | null): Map<number, SlotState> {
+  const map = new Map<number, SlotState>();
+  if (!member) return map;
+  for (const code of member.availSlots) map.set(code, "avail");
+  for (const code of member.classSlots) map.set(code, "class");
+  for (const code of member.jobSlots) map.set(code, "job");
+  return map;
+}
 
 export function MyScheduleScreen({
   member,
@@ -13,15 +37,16 @@ export function MyScheduleScreen({
 }: {
   member: Member | null;
   saving: boolean;
-  onSave: (avail: number[]) => Promise<void> | void;
+  onSave: (update: ScheduleUpdate) => Promise<void> | void;
 }) {
-  const [avail, setAvail] = useState<Set<number>>(new Set());
+  const [slots, setSlots] = useState<Map<number, SlotState>>(new Map());
+  const [brush, setBrush] = useState<Brush>("avail");
   const [showToast, setShowToast] = useState(false);
-  const paintingRef = useRef<{ mode: PaintMode } | null>(null);
+  const paintingRef = useRef<{ target: SlotState | null } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setAvail(new Set(member?.avail ?? []));
+    setSlots(buildSlotMap(member));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [member?.id]);
 
@@ -43,48 +68,49 @@ export function MyScheduleScreen({
     };
   }, []);
 
-  function applyCell(day: number, slot: number, mode: PaintMode) {
-    const code = encode(day, slot);
-    setAvail((prev) => {
-      const next = new Set(prev);
-      if (mode === "on") next.add(code);
-      else next.delete(code);
+  function applyCell(code: number, target: SlotState | null) {
+    setSlots((prev) => {
+      const next = new Map(prev);
+      if (target === null) next.delete(code);
+      else next.set(code, target);
       return next;
     });
   }
 
   function handlePointerDown(day: number, slot: number) {
     const code = encode(day, slot);
-    const mode: PaintMode = avail.has(code) ? "off" : "on";
-    paintingRef.current = { mode };
-    applyCell(day, slot, mode);
+    const current = slots.get(code) ?? null;
+    const target: SlotState | null =
+      brush === "erase" ? null : current === brush ? null : brush;
+    paintingRef.current = { target };
+    applyCell(code, target);
   }
 
   function handlePointerEnter(day: number, slot: number) {
     if (!paintingRef.current) return;
-    applyCell(day, slot, paintingRef.current.mode);
+    applyCell(encode(day, slot), paintingRef.current.target);
   }
 
   function clearAll() {
-    setAvail(new Set());
+    setSlots(new Map());
   }
 
   function turnOnWeekend() {
-    setAvail((prev) => {
-      const next = new Set(prev);
+    setSlots((prev) => {
+      const next = new Map(prev);
       for (const day of [5, 6]) {
-        for (let slot = 0; slot < SLOT_COUNT; slot++) next.add(encode(day, slot));
+        for (let slot = 0; slot < SLOT_COUNT; slot++) next.set(encode(day, slot), "avail");
       }
       return next;
     });
   }
 
   function turnOnWeekdayEvening() {
-    setAvail((prev) => {
-      const next = new Set(prev);
+    setSlots((prev) => {
+      const next = new Map(prev);
       for (let day = 0; day < 5; day++) {
         for (let slot = WEEKDAY_EVENING_START_SLOT; slot < SLOT_COUNT; slot++) {
-          next.add(encode(day, slot));
+          next.set(encode(day, slot), "avail");
         }
       }
       return next;
@@ -92,8 +118,16 @@ export function MyScheduleScreen({
   }
 
   async function handleSave() {
+    const availSlots: number[] = [];
+    const classSlots: number[] = [];
+    const jobSlots: number[] = [];
+    slots.forEach((state, code) => {
+      if (state === "avail") availSlots.push(code);
+      else if (state === "class") classSlots.push(code);
+      else jobSlots.push(code);
+    });
     try {
-      await onSave(Array.from(avail));
+      await onSave({ availSlots, classSlots, jobSlots });
       setShowToast(true);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => setShowToast(false), 2200);
@@ -119,8 +153,7 @@ export function MyScheduleScreen({
       <div className="card">
         <h2>내 시간표 입력</h2>
         <p className="card-sub">
-          월~일, 08:00~24:00 중 활동 가능한 시간을 칠해주세요. 클릭하거나 드래그하면 여러 칸을 한
-          번에 칠할 수 있어요.
+          월~일, 08:00~24:00 중 아래 붓을 고른 뒤 칸을 클릭하거나 드래그해서 칠해주세요.
         </p>
 
         <div className="who-row">
@@ -128,6 +161,33 @@ export function MyScheduleScreen({
           <span className="who-tags">
             <span className={`tag ${member.dept}`}>{DEPT_LABEL[member.dept]}</span>
             {member.campus && <span className="tag campus">캠퍼스투어</span>}
+          </span>
+        </div>
+
+        <div className="brush-row">
+          {BRUSH_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`brush-btn brush-${item.id}`}
+              aria-pressed={brush === item.id}
+              onClick={() => setBrush(item.id)}
+            >
+              {item.dotClass && <span className={`brush-dot ${item.dotClass}`} />}
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="legend">
+          <span>
+            <span className="swatch avail" /> 가능
+          </span>
+          <span>
+            <span className="swatch class" /> 수업
+          </span>
+          <span>
+            <span className="swatch job" /> 알바
           </span>
         </div>
 
@@ -153,16 +213,16 @@ export function MyScheduleScreen({
             ))}
             {Array.from({ length: SLOT_COUNT }).map((_, slot) => (
               <div key={slot} style={{ display: "contents" }}>
-                <div className={`time-cell ${slot % 2 === 0 ? "hour" : ""}`}>
-                  {slot % 2 === 0 ? slotLabel(slot) : ""}
+                <div className={`time-cell ${isHourMark(slot) ? "hour" : ""}`}>
+                  {isHourMark(slot) ? slotLabel(slot) : ""}
                 </div>
                 {DAYS.map((_, day) => {
-                  const on = avail.has(encode(day, slot));
+                  const state = slots.get(encode(day, slot));
                   return (
                     <div
                       key={day}
-                      className={`cell input-cell ${on ? "on" : ""} ${
-                        slot % 2 === 0 ? "hour-line" : ""
+                      className={`cell input-cell ${state ? `state-${state}` : ""} ${
+                        isHourMark(slot) ? "hour-line" : ""
                       }`}
                       onPointerDown={() => handlePointerDown(day, slot)}
                       onPointerEnter={() => handlePointerEnter(day, slot)}

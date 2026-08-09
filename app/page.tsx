@@ -7,7 +7,7 @@ import { OverviewScreen } from "../components/OverviewScreen";
 import { StartScreen } from "../components/StartScreen";
 import { TabId, Tabs } from "../components/Tabs";
 import { supabase } from "../lib/supabaseClient";
-import { Member, Selection } from "../lib/types";
+import { Member, ScheduleUpdate, Selection } from "../lib/types";
 
 const MY_ID_KEY = "dream-schedule-my-id";
 
@@ -25,7 +25,9 @@ export default function Home() {
     async function load() {
       const { data, error: fetchError } = await supabase
         .from("dream_schedule_members")
-        .select("id, name, dept, campus, avail")
+        .select(
+          "id, name, dept, campus, availSlots:avail_slots, classSlots:class_slots, jobSlots:job_slots"
+        )
         .order("created_at", { ascending: true });
       if (cancelled) return;
       if (fetchError) {
@@ -71,7 +73,9 @@ export default function Home() {
         const { data, error: insertError } = await supabase
           .from("dream_schedule_members")
           .insert({ name: selection.name, dept: selection.dept, campus: selection.campus })
-          .select("id, name, dept, campus, avail")
+          .select(
+            "id, name, dept, campus, availSlots:avail_slots, classSlots:class_slots, jobSlots:job_slots"
+          )
           .single();
         if (insertError || !data) {
           setError("등록에 실패했어요. 다시 시도해주세요.");
@@ -87,20 +91,25 @@ export default function Home() {
     }
   }
 
-  async function handleSaveSchedule(avail: number[]) {
+  async function handleSaveSchedule(update: ScheduleUpdate) {
     if (!myId) return;
     setSaving(true);
     setError(null);
     const { error: updateError } = await supabase
       .from("dream_schedule_members")
-      .update({ avail, updated_at: new Date().toISOString() })
+      .update({
+        avail_slots: update.availSlots,
+        class_slots: update.classSlots,
+        job_slots: update.jobSlots,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", myId);
     setSaving(false);
     if (updateError) {
       setError("저장에 실패했어요. 다시 시도해주세요.");
       throw updateError;
     }
-    setMembers((prev) => prev.map((m) => (m.id === myId ? { ...m, avail } : m)));
+    setMembers((prev) => prev.map((m) => (m.id === myId ? { ...m, ...update } : m)));
   }
 
   return (

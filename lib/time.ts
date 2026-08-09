@@ -1,16 +1,21 @@
 // 요일 인코딩: 0=월 1=화 2=수 3=목 4=금 5=토 6=일
-// 슬롯 인코딩: 08:00~24:00 을 30분 단위로 나눈 0~31 (32개)
+// 슬롯 인코딩: 08:00~24:00 을 15분 단위로 나눈 0~63 (64개)
 export const DAYS = ["월", "화", "수", "목", "금", "토", "일"] as const;
-export const SLOT_COUNT = 32;
+export const SLOT_COUNT = 64;
+export const SLOTS_PER_HOUR = 4;
 export const START_HOUR = 8;
 
 export function isWeekend(dayIndex: number): boolean {
   return dayIndex === 5 || dayIndex === 6;
 }
 
+export function isHourMark(slot: number): boolean {
+  return slot % SLOTS_PER_HOUR === 0;
+}
+
 export function slotToHourMinute(slot: number): { hour: number; minute: number } {
-  const hour = START_HOUR + Math.floor(slot / 2);
-  const minute = slot % 2 === 0 ? 0 : 30;
+  const hour = START_HOUR + Math.floor(slot / SLOTS_PER_HOUR);
+  const minute = (slot % SLOTS_PER_HOUR) * 15;
   return { hour, minute };
 }
 
@@ -27,4 +32,4 @@ export function decode(code: number): { day: number; slot: number } {
   return { day: Math.floor(code / 100), slot: code % 100 };
 }
 
-export const WEEKDAY_EVENING_START_SLOT = (18 - START_HOUR) * 2; // 18:00
+export const WEEKDAY_EVENING_START_SLOT = (18 - START_HOUR) * SLOTS_PER_HOUR; // 18:00

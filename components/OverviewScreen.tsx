@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Member } from "../lib/types";
-import { DAYS, SLOT_COUNT, encode, slotLabel } from "../lib/time";
+import { DAYS, SLOT_COUNT, isHourMark, slotLabel } from "../lib/time";
 import {
   DeptFilter,
   PlanSubFilter,
@@ -11,6 +11,7 @@ import {
   filterByDept,
   membersAvailableAt,
   membersAvailableForRange,
+  slotStateOf,
 } from "../lib/schedule";
 
 type ViewMode = "heatmap" | "table";
@@ -33,8 +34,8 @@ export function OverviewScreen({ members }: { members: Member[] }) {
   const [tableDay, setTableDay] = useState(0);
 
   const [helperDay, setHelperDay] = useState(0);
-  const [helperStart, setHelperStart] = useState(22);
-  const [helperEnd, setHelperEnd] = useState(26);
+  const [helperStart, setHelperStart] = useState(44); // 19:00
+  const [helperEnd, setHelperEnd] = useState(52); // 21:00
   const [helperResult, setHelperResult] = useState<{
     day: number;
     start: number;
@@ -250,8 +251,8 @@ export function OverviewScreen({ members }: { members: Member[] }) {
                 ))}
                 {Array.from({ length: SLOT_COUNT }).map((_, slot) => (
                   <div key={slot} style={{ display: "contents" }}>
-                    <div className={`time-cell ${slot % 2 === 0 ? "hour" : ""}`}>
-                      {slot % 2 === 0 ? slotLabel(slot) : ""}
+                    <div className={`time-cell ${isHourMark(slot) ? "hour" : ""}`}>
+                      {isHourMark(slot) ? slotLabel(slot) : ""}
                     </div>
                     {DAYS.map((_, day) => {
                       const count = membersAvailableAt(filtered, day, slot).length;
@@ -264,7 +265,7 @@ export function OverviewScreen({ members }: { members: Member[] }) {
                           key={day}
                           className={`cell heat-cell ${isFull ? "full" : ""} ${
                             isSelected ? "selected" : ""
-                          } ${slot % 2 === 0 ? "hour-line" : ""}`}
+                          } ${isHourMark(slot) ? "hour-line" : ""}`}
                           style={{
                             backgroundColor:
                               ratio > 0
@@ -318,7 +319,17 @@ export function OverviewScreen({ members }: { members: Member[] }) {
                 ))}
               </select>
             </div>
-            <p className="table-caption">● : 활동 가능한 시간 · 공백 : 수업 · 알바 시간</p>
+            <div className="legend">
+              <span>
+                <span className="swatch avail" /> 가능
+              </span>
+              <span>
+                <span className="swatch class" /> 수업
+              </span>
+              <span>
+                <span className="swatch job" /> 알바
+              </span>
+            </div>
             <div className="excel-scroll">
               <div
                 className="excel-grid"
@@ -327,17 +338,17 @@ export function OverviewScreen({ members }: { members: Member[] }) {
                 <div className="excel-corner" />
                 {Array.from({ length: SLOT_COUNT }).map((_, slot) => (
                   <div key={slot} className="excel-timehead">
-                    {slot % 2 === 0 ? slotLabel(slot) : ""}
+                    {isHourMark(slot) ? slotLabel(slot) : ""}
                   </div>
                 ))}
                 {filtered.map((m) => (
                   <div key={m.id} style={{ display: "contents" }}>
                     <div className={`excel-name ${m.dept}`}>{m.name}</div>
                     {Array.from({ length: SLOT_COUNT }).map((_, slot) => {
-                      const on = m.avail.includes(encode(tableDay, slot));
+                      const state = slotStateOf(m, tableDay, slot);
                       return (
                         <div key={slot} className="excel-dot">
-                          {on && <span className="mark" />}
+                          {state && <span className={`mark ${state}`} />}
                         </div>
                       );
                     })}
